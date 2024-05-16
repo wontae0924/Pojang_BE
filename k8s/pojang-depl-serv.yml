@@ -1,0 +1,87 @@
+# depl
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pojang-depl
+spec:
+  # pod 개수
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pojang
+  template:
+    metadata:
+      labels:
+        app: pojang
+    spec:
+      containers:
+      - name: k8s-pojang
+        image: bny1324/k8s-pojang:v1
+        imagePullPolicy: Always  
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: "1" 
+            memory: "500Mi" 
+          requests:
+            cpu: "0.5"
+            memory: "250Mi"
+        env:
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: redis
+              key: host
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: pojang-db-secret
+              key: DB_HOST
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef: 
+              name: pojang-db-secret
+              key: DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef: 
+              name: pojang-db-secret
+              key: DB_PASSWORD
+        # 컨테이너 상태 확인 
+        readinessProbe:
+          httpGet:
+            # healthcheck 경로
+            path: /api/members
+            port: 8080
+          # 컨테이너 시작 후 지연
+          initialDelaySeconds: 10
+          # 확인 반복 주기
+          periodSeconds: 10
+          # 요청이 완료되어야 하는 시간
+          timeoutSeconds: 1
+          # 연속 성공 횟수
+          successThreshold: 1
+          # 연속 실패 횟수
+          failureThreshold: 3
+      imagePullSecrets:
+        - name: docker-secret
+---
+# service yml 추가
+apiVersion: v1
+kind: Service
+metadata:
+  # ingress와 연결될 서비스 명
+  name: pojang-service
+spec:
+  # ClusterIP는 클러스터 내부에서만 접근가능한 Service를 생성
+  type: ClusterIP
+  ports:
+  - name: http
+    # pod의 외부포트
+    port: 8080
+    # 서비스와 연결해줄 pod의 내부 포트
+    targetPort: 8080
+    # depl의 labels과 맞추기
+  selector:
+    app: pojang

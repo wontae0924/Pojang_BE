@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  # 이메일 인증
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+  pojang-back:
+    image: bny1324/pojang-be:v1
+    ports:
+      - 80:8080
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://${DB_HOST}:3306/pojang
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - redis
+
+# scp test
